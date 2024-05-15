@@ -16,7 +16,7 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.ar_model import AutoReg
 from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import root_mean_squared_error
 
 def perform_adf_test(series):
     """Performs Augmented Dicker Fuller Test (stationarity or not)"""
@@ -64,6 +64,31 @@ def undo_transformations(transformed_series, original_series):
     
     return np.array(orig_predictions).flatten()
 
+def random_walk(last_price, forecast_length, sigma):
+    """
+    last_price = the price of the last day (untransformed)
+    forecast_length = number of days you want to forecast
+    sigma = daily volatility of stock
+    credit: https://github.com/teobeeguan/Python-For-Finance/blob/main/Time%20Series/RandomWalkSimulation.py
+
+    returns a list with forecasted_values
+    """
+    count = 0
+    price_list = []
+
+    price = last_price*(1+np.random.normal(0, sigma))
+    price_list.append(price)
+
+    for y in range(forecast_length):
+        if count == forecast_length-1:
+            break
+        price = price_list[count]*(1+np.random.normal(0,sigma))
+        price_list.append(price)
+        count+=1
+
+    return price_list
+    
+
 def evaluate_model(fitted_model, testing_data, training_data, original_training_data, original_testing_data):
     """
     fitted_model = fitted model object
@@ -88,9 +113,24 @@ def evaluate_model(fitted_model, testing_data, training_data, original_training_
     results.columns = ['actual', 'predicted', 'lower_bound', 'upper_bound']
 
     # ensures both actual and predicted columns are the same shape to do MAE calculations
-    print(f"MAE: {mean_absolute_error(results.actual, results.predicted)}")
-    print(f"BIC: {fitted_model.bic}")
-    print(f"AIC: {fitted_model.aic}")
+    print(f"RMSE: {root_mean_squared_error(results.actual, results.predicted)}")
 
     results.index = results.index.to_timestamp() # convert index back to timestamp for ease of use (plotting)
     return results
+
+def evaluate_rw(actual, predicted):
+    """
+    actual = a pandas series of the actual adj closing prices
+    predicted = a pandas series of the predicted adj closing prices
+    evaluates predictions of random walk model using RMSE
+    """
+    # Create data frame and join on common dates to prevent difference in shape
+    if type(actual.index) != type(predicted.index):
+        actual.index = actual.index.to_timestamp()
+
+    df = pd.concat([actual, predicted], join = 'inner', axis = 1)
+    df.columns = ['actual', 'predicted']
+
+    # Compute RMSE
+    print(f"RMSE of Random Walk: {root_mean_squared_error(df['actual'], df['predicted'])}")
+    
