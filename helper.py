@@ -64,15 +64,27 @@ def undo_transformations(transformed_series, original_series):
     
     return np.array(orig_predictions).flatten()
 
-def random_walk(last_price, forecast_length, sigma):
+def random_walk(last_price, forecast_length):
     """
+    old version:
+
     last_price = the price of the last day (untransformed)
     forecast_length = number of days you want to forecast
     sigma = daily volatility of stock
     credit: https://github.com/teobeeguan/Python-For-Finance/blob/main/Time%20Series/RandomWalkSimulation.py
 
-    returns a list with forecasted_values
+    updated:
+
+    last_price = the untransformed price of the last day
+    forecast_length = how many days to forecast
+
+
+    based on https://otexts.com/fpp3/simple-methods.html
+
+
+    returns a list with forecasted values
     """
+    """ OLD CODE:
     count = 0
     price_list = []
 
@@ -85,8 +97,13 @@ def random_walk(last_price, forecast_length, sigma):
         price = price_list[count]*(1+np.random.normal(0,sigma))
         price_list.append(price)
         count+=1
+    """
+    # Random Walk according to fpp3
+    predictions = [] 
+    for i in range(forecast_length):
+        predictions.append(last_price)
 
-    return price_list
+    return predictions
     
 
 def evaluate_model(fitted_model, testing_data, training_data, original_training_data, original_testing_data):
